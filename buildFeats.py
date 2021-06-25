@@ -3,74 +3,12 @@ import requests
 import json
 import datetime
 import codecs
-import re
+
+from Feats import featsBase
 
 featHolder = {}
 featHolder['name'] = 'Pathfinder 2.0 feat list'
 featHolder['date'] = datetime.date.today().strftime("%B %d, %Y")
-
-
-def getTraits(detailsObject, detail):
-    traitHolder = []
-    traits = detail.find_all("span", {'class': 'trait'})
-    for traitElement in traits:
-        if traitElement.next:
-            traitHolder.append(traitElement.next.text)
-
-    if len(traitHolder) > 0:
-        detailsObject['traits'] = traitHolder
-
-def parseDetailsTitle(detailsObject, detail):
-    titleInfo = detail.find("h1", {'class': 'title'})
-    action = titleInfo.find("img", alt=re.compile("^((?!PFS).)*$"))
-    pfsStatus = titleInfo.find("img", alt=re.compile("PFS"))
-
-    if pfsStatus is not None:
-        detailsObject['pfsLegal'] = True
-    if action is not None:
-        detailsObject['actions'] = action['alt']
-
-
-def get_details(link):
-    res = requests.get(link)
-    res.raise_for_status()
-    soup = BeautifulSoup(res.text, 'html5lib')
-    feat = soup.find_all("div", {'class': 'main'})
-    detail = soup.find("span", {'id': 'ctl00_MainContent_DetailedOutput'})
-    # print(detail.contents)
-    children = detail.contents
-    reachedBreak = False
-    detailHolder = []
-    details = {}
-
-    getTraits(details, detail)
-    parseDetailsTitle(details, detail)
-
-    for child in children:
-        stringContents = str(child)
-        if stringContents.startswith("<"):
-            if stringContents == "<hr/>":
-                reachedBreak = True
-            if reachedBreak:
-                if child.name == "a":
-                    detailHolder.append(child.text)
-                if child.name == "ul":
-                    # print(child.text)
-                    children3 = child.contents
-                    for child3 in children3:
-                        stringContents3 = str(child3)
-                        if stringContents3.startswith("<"):
-                            if child3.name == "li":
-                                # print(child3.text)
-                                detailHolder.append(child3.text)
-        else:
-            if reachedBreak:
-                detailHolder.append(stringContents)
-        # print(child)
-        # print('<!!!!!!!!!!!!!!!!!!!!!!!!!>')
-        string = " "
-        details['text'] = string.join(detailHolder)
-    return details
 
 
 def get_feats(link):
@@ -85,8 +23,6 @@ def get_feats(link):
     t = 0
     for row in rows:
         t += 1
-        # print(row)
-        # print("-----------------------------------")
         feat = {}
         entries = row.find_all(lambda tag: tag.name == 'td')
         if entries is not None:
@@ -109,25 +45,25 @@ def get_feats(link):
                 feat['prerequisites'] = prereq.replace(u'\u2014', '')
                 feat['benefits'] = source
                 try:
-                    details = get_details(feat['link'])
+                    details = featsBase.get_details(feat['link'])
                     for key in details.keys():
                         if key != 'text':
                             feat[key] = details[key]
+                        else:
+                            feat['description'] = details[key]
                 except:
                     addFeat = 0;
                     print("Error while getting details : " + feat['link'])
 
                 if addFeat > 0:
                     feats.append(feat)
-        # if t > 5:
-        # break
     return feats
 
 
 def get_class_feats():
     holder = {}
-    listOfPages = codecs.open("feats.csv", encoding='utf-8')
-    for line in listOfPages:
+    list_of_pages = codecs.open("feats.csv", encoding='utf-8')
+    for line in list_of_pages:
         featMD = line.split(",")
         print("Getting feats for :", featMD[0], "This url:", featMD[2].strip('\n'))
         # if featMD[0] == "Ranger Feats":

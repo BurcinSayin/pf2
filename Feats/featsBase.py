@@ -1,9 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
-import json
-import datetime
-import codecs
 import re
+
 
 def getTraits(detailsObject, detail):
     traitHolder = []
@@ -14,6 +12,7 @@ def getTraits(detailsObject, detail):
 
     if len(traitHolder) > 0:
         detailsObject['traits'] = traitHolder
+
 
 def parseDetailsTitle(detailsObject, detail):
     titleInfo = detail.find("h1", {'class': 'title'})
